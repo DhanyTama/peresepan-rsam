@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -42,4 +43,24 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function resep()
+    {
+        return $this->hasMany(Resep::class, 'dokter_id')->where('role', 'dokter');
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'apoteker_id')->where('role', 'apoteker');
+    }
+
+    public function isDokter()
+    {
+        return $this->role === 'dokter';
+    }
+
+    public function isApoteker()
+    {
+        return $this->role === 'apoteker';
+    }
 }
