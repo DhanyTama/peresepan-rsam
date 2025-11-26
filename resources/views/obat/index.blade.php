@@ -129,7 +129,8 @@
                                                                 </p>
 
                                                                 <div class="mt-6 flex justify-end gap-2">
-                                                                    <button type="button" @click="openDelete = false"
+                                                                    <button type="button"
+                                                                        @click="openDeleteConfirm = false"
                                                                         class="button-secondary">
                                                                         Batal
                                                                     </button>
