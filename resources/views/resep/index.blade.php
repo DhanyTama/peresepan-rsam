@@ -12,18 +12,45 @@
 
                     <div class="overflow-y-auto max-h-[69vh]">
 
-                        @if (auth()->user()->role === 'dokter')
-                            <div class="my-3">
-                                <a href="{{ route('resep.create') }}"
-                                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    <i class="fas fa-plus"></i>
-                                    Buat Resep
+                        <div class="my-3 flex flex-wrap items-center justify-between gap-4">
+                            @if (auth()->user()->role === 'dokter')
+                                <a href="{{ route('resep.create') }}" class="button-success">
+                                    <i class="fas fa-plus"></i> Buat Resep
                                 </a>
-                            </div>
-                        @endif
+                            @endif
 
-                        <div class="overflow-y-auto"
-                            style="max-height: {{ auth()->user()->role === 'dokter' ? '56vh' : '62vh' }};">
+                            <form method="GET" action="{{ route('resep.index') }}"
+                                class="flex flex-wrap items-center gap-3">
+
+                                <input type="text" name="search" value="{{ request('search') }}"
+                                    placeholder="Cari resep / pasien / dokter..."
+                                    class="border p-2 rounded w-64 dark:bg-gray-700 dark:text-white"
+                                    oninput="this.form.submit()">
+
+                                <select name="status" class="border p-2 rounded dark:bg-gray-700 dark:text-white"
+                                    onchange="this.form.submit()">
+                                    <option value="">Semua Status</option>
+                                    <option value="Draft" {{ request('status') == 'Draft' ? 'selected' : '' }}>
+                                        Draft</option>
+                                    <option value="Diproses" {{ request('status') == 'Diproses' ? 'selected' : '' }}>
+                                        Diproses</option>
+                                    <option value="Completed" {{ request('status') == 'Completed' ? 'selected' : '' }}>
+                                        Completed</option>
+                                </select>
+
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" name="overstock" value="1"
+                                        {{ request('overstock') ? 'checked' : '' }} onchange="this.form.submit()">
+                                    <span>Melebihi Stok</span>
+                                </label>
+
+                            </form>
+
+                        </div>
+
+                        <div class="overflow-y-auto" style="max-height: 54vh;">
+
+
                             <table class="table-auto w-full">
                                 <thead class="dark:bg-gray-800 sticky top-0 z-10">
                                     <tr class="border-b text-left">
@@ -44,164 +71,200 @@
                                             <td class="p-2">{{ $resep->nomor_resep }}</td>
                                             <td class="p-2">{{ $resep->pasien->nama_pasien }}</td>
                                             <td class="p-2">{{ $resep->dokter->name }}</td>
-                                            <td class="p-2">{{ $resep->status }}</td>
+                                            <td class="p-2 status-{{ ucFirst($resep->status) }}">
+                                                {{ ucFirst($resep->status) }}</td>
                                             <td class="p-2">
                                                 {{ $resep->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}
                                             </td>
-                                            <td class="p-3">
-                                                @if ($resep->over_stock_flag)
-                                                    <span class="text-red-600 font-semibold text-sm">⚠ Jumlah obat
-                                                        melebihi stok!</span>
-                                                @endif
-                                                <button
-                                                    onclick="document.getElementById('detailmodal-{{ $resep->id }}').classList.remove('hidden');"
-                                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                                    @if (auth()->user()->role === 'dokter')
+                                            <td class="p-3 flex gap-2">
+
+                                                <div x-data="{ openDetail: false }">
+
+                                                    <button @click="openDetail = true" class="button-detail">
                                                         Detail
-                                                    @else
-                                                        @if ($resep->status === 'Draft')
-                                                            Buat Transaksi
-                                                        @else
-                                                            Detail
-                                                        @endif
-                                                    @endif
-                                                </button>
+                                                    </button>
 
-                                                <div id="detailmodal-{{ $resep->id }}"
-                                                    class="hidden fixed inset-0 z-50">
-                                                    <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-                                                    <div class="flex items-center justify-center min-h-screen">
-                                                        <div
-                                                            class="bg-white dark:bg-gray-800 p-6 rounded-lg w-11/12 max-w-lg max-h-[80vh] overflow-auto relative z-10">
+                                                    <div x-show="openDetail" x-cloak x-transition
+                                                        class="fixed inset-0 z-50">
+                                                        <div class="absolute inset-0 bg-black bg-opacity-50"
+                                                            @click="openDetail = false"></div>
 
-                                                            <h2 class="text-xl font-semibold mb-4">Detail Resep</h2>
+                                                        <div class="flex items-center justify-center min-h-screen p-4">
+                                                            <div @click.stop
+                                                                class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-xl max-h-[80vh] overflow-auto relative z-10">
 
-                                                            <p><strong>Nomor Resep:</strong> {{ $resep->nomor_resep }}
-                                                            </p>
-                                                            <p><strong>Pasien:</strong>
-                                                                {{ $resep->pasien->nama_pasien }}
-                                                            </p>
-                                                            <p><strong>Dokter:</strong> {{ $resep->dokter->name }}</p>
-                                                            <p><strong>Status:</strong> {{ $resep->status }}</p>
-                                                            <p><strong>Tanggal Dibuat:</strong>
-                                                                {{ $resep->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}
-                                                            </p>
+                                                                <h2 class="text-xl font-semibold mb-4">Detail Resep</h2>
 
-                                                            <h3 class="mt-4 font-semibold">Obat</h3>
+                                                                <p><strong>Nomor Resep:</strong>
+                                                                    {{ $resep->nomor_resep }}</p>
+                                                                <p><strong>Pasien:</strong>
+                                                                    {{ $resep->pasien->nama_pasien }}</p>
+                                                                <p><strong>Dokter:</strong> {{ $resep->dokter->name }}
+                                                                </p>
+                                                                <p><strong>Status:</strong>
+                                                                    {{ ucFirst($resep->status) }}</p>
+                                                                <p><strong>Tanggal Dibuat:</strong>
+                                                                    {{ $resep->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}
+                                                                </p>
 
-                                                            @if (auth()->user()->role === 'apoteker')
-                                                                <form class="mt-5"
-                                                                    action="{{ route('transaksi.store') }}"
-                                                                    method="POST">
-                                                                    @csrf
-                                                            @endif
+                                                                <h3 class="mt-4 font-semibold">Obat</h3>
 
-                                                            <table class="table-auto w-full">
-                                                                <thead>
-                                                                    <tr class="border-b text-left">
-                                                                        <th class="p-2">#</th>
-                                                                        <th class="p-2">Nama Obat</th>
-                                                                        <th class="p-2">Dosis</th>
-                                                                        <th class="p-2">Jumlah Obat</th>
-                                                                        <th class="p-2">Stok Obat</th>
-                                                                    </tr>
-                                                                </thead>
-
-                                                                <tbody>
-                                                                    @foreach ($resep->details as $row => $detail)
-                                                                        <tr class="border-b">
-                                                                            <td class="p-2">{{ $row + 1 }}
-                                                                            </td>
-                                                                            <td class="p-2">
-                                                                                {{ $detail->obat->nama_obat }}</td>
-                                                                            <td class="p-2">{{ $detail->dosis }}
-                                                                            </td>
-                                                                            <td class="p-2">
-                                                                                {{ $detail->jumlah }}</td>
-
-                                                                            @if (auth()->user()->role === 'apoteker')
-                                                                                <input type="hidden" name="resep_id"
-                                                                                    value="{{ $resep->id }}">
-                                                                                <input type="hidden"
-                                                                                    name="details[{{ $detail->id }}][jumlah]"
-                                                                                    value="{{ $detail->jumlah }}">
-                                                                            @endif
-
-                                                                            <td class="p-2">
-                                                                                {{ $detail->obat->stok }}</td>
-                                                                            <td>
-                                                                                @if ($detail->over_stock_flag)
-                                                                                    <span
-                                                                                        class="text-red-600 text-xs font-semibold">⚠
-                                                                                        Melebihi stok</span>
-                                                                                @endif
-                                                                            </td>
-                                                                        </tr>
-                                                                    @endforeach
-                                                                </tbody>
-                                                            </table>
-
-                                                            <div class="mt-4 flex justify-end gap-2">
-                                                                <button type="button"
-                                                                    onclick="document.getElementById('detailmodal-{{ $resep->id }}').classList.add('hidden');"
-                                                                    class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Tutup</button>
                                                                 @if (auth()->user()->role === 'apoteker')
-                                                                    @if ($resep->status === 'Draft')
-                                                                        <button type="submit"
-                                                                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                                                            Buat Transaksi
-                                                                        </button>
+                                                                    @if (ucFirst($resep->status) === 'Draft')
+                                                                        <form class="mt-5"
+                                                                            action="{{ route('resep.process', $resep->nomor_resep) }}"
+                                                                            method="POST">
+                                                                            @csrf
+                                                                        @else
+                                                                            @if (ucFirst($resep->status) === 'Diproses')
+                                                                                <form class="mt-5"
+                                                                                    action="{{ route('transaksi.store') }}"
+                                                                                    method="POST">
+                                                                                    @csrf
+                                                                            @endif
                                                                     @endif
-                                                                @else
-                                                                    <a href="{{ route('resep.edit', ['id' => $resep->id]) }}"
-                                                                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                                                        Edit Resep
-                                                                    </a>
                                                                 @endif
+
+                                                                <table class="table-auto w-full mt-3">
+                                                                    <thead>
+                                                                        <tr class="border-b text-left">
+                                                                            <th class="p-2">#</th>
+                                                                            <th class="p-2">Nama Obat</th>
+                                                                            <th class="p-2">Dosis</th>
+                                                                            <th class="p-2">Jumlah</th>
+                                                                            <th class="p-2">Stok</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach ($resep->details as $row => $detail)
+                                                                            <tr class="border-b">
+                                                                                <td class="p-2">{{ $row + 1 }}
+                                                                                </td>
+                                                                                <td class="p-2">
+                                                                                    {{ $detail->obat->nama_obat }}</td>
+                                                                                <td class="p-2">{{ $detail->dosis }}
+                                                                                </td>
+                                                                                <td class="p-2">
+                                                                                    {{ $detail->jumlah }}</td>
+
+                                                                                @if (auth()->user()->role === 'apoteker')
+                                                                                    <input type="hidden"
+                                                                                        name="nomor_resep"
+                                                                                        value="{{ $resep->nomor_resep }}">
+                                                                                    <input type="hidden"
+                                                                                        name="details[{{ $detail->id }}][jumlah]"
+                                                                                        value="{{ $detail->jumlah }}">
+                                                                                @endif
+
+                                                                                <td class="p-2">
+                                                                                    {{ $detail->obat->stok }}</td>
+                                                                                <td>
+                                                                                    @if ($detail->over_stock_flag)
+                                                                                        <span
+                                                                                            class="text-red-600 text-xs font-semibold">⚠
+                                                                                            Melebihi stok</span>
+                                                                                    @endif
+                                                                                </td>
+                                                                            </tr>
+                                                                        @endforeach
+                                                                    </tbody>
+                                                                </table>
+
+                                                                <div class="mt-6 flex justify-end gap-2">
+
+                                                                    <button type="button" @click="openDetail = false"
+                                                                        class="button-secondary">
+                                                                        Tutup
+                                                                    </button>
+
+                                                                    @if (auth()->user()->role === 'apoteker')
+                                                                        @if (ucFirst($resep->status) === 'Draft')
+                                                                            <button type="submit"
+                                                                                class="button-success">
+                                                                                Proses Resep
+                                                                            </button>
+                                                                        @else
+                                                                            @if (ucFirst($resep->status) === 'Diproses')
+                                                                                <button type="submit"
+                                                                                    class="button-success">
+                                                                                    Selesaikan Transaksi
+                                                                                </button>
+                                                                            @endif
+                                                                        @endif
+                                                                    @endif
+
+                                                                    @if (auth()->user()->role === 'dokter' && ucFirst($resep->status) === 'Draft')
+                                                                        <a href="{{ route('resep.edit', $resep->nomor_resep) }}"
+                                                                            class="button-success">
+                                                                            Edit Resep
+                                                                        </a>
+                                                                    @endif
+                                                                </div>
+
+                                                                @if (auth()->user()->role === 'apoteker')
+                                                                    </form>
+                                                                @endif
+
                                                             </div>
-                                                            @if (auth()->user()->role === 'apoteker')
-                                                                </form>
-                                                            @endif
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                @if (auth()->user()->role === 'dokter')
-                                                    <button
-                                                        onclick="document.getElementById('deletemodal-{{ $resep->id }}').classList.remove('hidden');"
-                                                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                                                        Hapus
-                                                    </button>
+                                                @if (auth()->user()->role === 'dokter' && ucFirst($resep->status) === 'Draft')
+                                                    <div x-data="{ openDeleteConfirm: false }">
 
-                                                    <div id="deletemodal-{{ $resep->id }}"
-                                                        class="hidden fixed inset-0 z-50">
-                                                        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-                                                        <div class="flex items-center justify-center min-h-screen">
+                                                        <button @click="openDeleteConfirm = true"
+                                                            class="button-danger">
+                                                            Hapus
+                                                        </button>
+
+                                                        <div x-show="openDeleteConfirm" x-cloak x-transition
+                                                            class="fixed inset-0 z-50">
+                                                            <div class="absolute inset-0 bg-black bg-opacity-50"
+                                                                @click="openDeleteConfirm = false"></div>
+
                                                             <div
-                                                                class="bg-white dark:bg-gray-800 p-6 rounded-lg w-11/12 max-w-lg max-h-[80vh] overflow-auto relative z-10">
+                                                                class="flex items-center justify-center min-h-screen p-4">
+                                                                <div @click.stop
+                                                                    class="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-xl max-h-[80vh] overflow-auto relative z-10">
 
-                                                                <h2 class="text-lg font-semibold mb-4">Konfirmasi Hapus
-                                                                </h2>
-                                                                <p>Apakah Anda yakin ingin menghapus resep
-                                                                    <strong>{{ $resep->nomor_resep }}</strong>?
-                                                                </p>
-                                                                <div class="mt-4 flex justify-end gap-2">
-                                                                    <button
-                                                                        onclick="document.getElementById('deletemodal-{{ $resep->id }}').classList.add('hidden');"
-                                                                        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Batal</button>
+                                                                    <h2 class="text-lg font-semibold mb-4">Konfirmasi
+                                                                        Hapus
+                                                                    </h2>
 
-                                                                    <form
-                                                                        action="{{ route('resep.destroy', $resep->id) }}"
-                                                                        method="POST">
-                                                                        @csrf
-                                                                        @method('DELETE')
-                                                                        <button type="submit"
-                                                                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Hapus</button>
-                                                                    </form>
+                                                                    <p>
+                                                                        Apakah Anda yakin ingin menghapus resep
+                                                                        <strong>{{ $resep->nomor_resep }}</strong>?
+                                                                    </p>
+
+                                                                    <div class="mt-6 flex justify-end gap-2">
+                                                                        <button type="button"
+                                                                            @click="openDelete = false"
+                                                                            class="button-secondary">
+                                                                            Batal
+                                                                        </button>
+
+                                                                        <form
+                                                                            action="{{ route('resep.destroy', $resep->nomor_resep) }}"
+                                                                            method="POST">
+                                                                            @csrf
+                                                                            @method('DELETE')
+                                                                            <button type="submit"
+                                                                                class="button-danger">
+                                                                                Hapus
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                @endif
+
+                                                @if ($resep->over_stock_flag)
+                                                    <span class="text-red-600 font-semibold text-sm">⚠ Melebihi
+                                                        stok!</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -214,7 +277,6 @@
                             {{ $reseps->onEachSide(1)->links() }}
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

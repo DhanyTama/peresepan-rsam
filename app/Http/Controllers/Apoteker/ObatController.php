@@ -23,7 +23,7 @@ class ObatController extends Controller
      */
     public function create()
     {
-        abort(404);
+        return view('obat.create');
     }
 
     /**
@@ -31,7 +31,15 @@ class ObatController extends Controller
      */
     public function store(Request $request)
     {
-        abort(404);
+        $validated = $request->validate([
+            'nama_obat'   => 'required|string|max:255',
+            'stok'        => 'required|integer|min:0',
+            'harga_jual'  => 'required|numeric|min:0',
+        ]);
+
+        Obat::create($validated);
+
+        return redirect()->route('obat.index')->with('success', 'Obat berhasil ditambahkan.');
     }
 
     /**
@@ -60,7 +68,7 @@ class ObatController extends Controller
             'stok' => 'required|integer|min:0',
         ]);
 
-        $obat = Obat::find($id);
+        $obat = Obat::where('kode_obat', $id)->first();
         if (!$obat) {
             return redirect()->route('obat.index')->with('error', 'Obat ' . $obat->kode_obat . ' - ' . $obat->nama_obat . ' tidak ditemukan.');
         }
@@ -76,6 +84,15 @@ class ObatController extends Controller
      */
     public function destroy(string $id)
     {
-        abort(404);
+        if (auth()->user()->role !== 'apoteker') {
+            abort(403);
+        }
+
+        $obat = Obat::where('kode_obat', $id)->first();
+        if (!$obat) {
+            return redirect()->route('obat.index')->with('error', 'Obat tidak ditemukan.');
+        }
+        $obat->delete();
+        return redirect()->route('obat.index')->with('success', 'Obat ' . $obat->nama_obat . ' berhasil dihapus.');
     }
 }

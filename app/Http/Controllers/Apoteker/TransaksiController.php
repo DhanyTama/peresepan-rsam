@@ -44,27 +44,33 @@ class TransaksiController extends Controller
         }
 
         $request->validate([
-            'resep_id' => 'required|integer|exists:reseps,id',
+            'nomor_resep' => 'required',
             'details' => 'required|array',
             'details.*.jumlah' => 'required|integer|min:1',
         ]);
 
-        $resep = Resep::find($request->resep_id);
+        $resep = Resep::where('nomor_resep', $request->nomor_resep)->first();
         if (!$resep) {
             return back()->withErrors([
-                'resep_id' => 'Resep tidak ditemukan.'
+                'nomor_resep' => 'Resep tidak ditemukan.'
             ]);
         }
 
-        if ($resep->status == 'Diproses' || $resep->status == 'Completed') {
+        if ($resep->status == 'Draft') {
             return back()->withErrors([
-                'resep_id' => 'Resep sudah diproses.'
+                'nomor_resep' => 'Resep belum diproses.'
+            ]);
+        }
+
+        if ($resep->status == 'Completed') {
+            return back()->withErrors([
+                'nomor_resep' => 'Resep sudah selesai.'
             ]);
         }
 
         $transaksi = new Transaction();
         $transaksi->resep_id = $resep->id;
-        $transaksi->apoteker_id = auth()->id();
+        $transaksi->apoteker_id = auth()->user()->id;
         $transaksi->total_harga = 0;
 
         $detailTransaksiData = [];
@@ -80,7 +86,7 @@ class TransaksiController extends Controller
             $obat = $detailResep->obat;
             if (!$obat) {
                 return back()->withErrors([
-                    "items.$index.obat_id" => "Obat tidak ditemukan."
+                    "items.$index.kode_obat" => "Obat tidak ditemukan."
                 ])->withInput();
             }
 
@@ -113,9 +119,9 @@ class TransaksiController extends Controller
                 TransactionDetail::create($data);
             }
 
-            $resep->status = 'Diproses';
+            $resep->status = 'Completed';
             if ($resep->save()) {
-                return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil diproses.');
+                return redirect()->route('transaksi.index')->with('success', 'Transaksi selesai.');
             }
             return back()->withErrors([
                 'general' => 'Gagal memperbarui status resep.'

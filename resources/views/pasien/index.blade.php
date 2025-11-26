@@ -30,8 +30,8 @@
                                     <td class="p-2">{{ $pasien->alamat }}</td>
                                     <td class="p-2">{{ $pasien->no_telepon }}</td>
                                     <td class="p-3">
-                                        <a href="{{ route('resep.create', ['pasien_id' => $pasien->id]) }}"
-                                            class="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-600 hover:text-white">
+                                        <a href="{{ route('resep.create', ['kode_pasien' => $pasien->kode_pasien]) }}"
+                                            class="button-detail">
                                             Buat Resep
                                         </a>
                                     </td>

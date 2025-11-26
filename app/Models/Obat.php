@@ -17,6 +17,27 @@ class Obat extends Model
         'harga_jual',
     ];
 
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            $prefix = 'OBT-';
+
+            $last = self::where('kode_obat', 'LIKE', $prefix . '%')
+                ->orderBy('kode_obat', 'desc')
+                ->first();
+
+            if ($last) {
+                $lastNumber = intval(substr($last->kode_obat, -4)) + 1;
+            } else {
+                $lastNumber = 1;
+            }
+
+            $model->kode_obat = $prefix . str_pad($lastNumber, 4, '0', STR_PAD_LEFT);
+        });
+    }
+
     public function resepDetails()
     {
         return $this->hasMany(ResepDetail::class, 'obat_id');
