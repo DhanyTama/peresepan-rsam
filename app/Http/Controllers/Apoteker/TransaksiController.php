@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Apoteker;
 
 use App\Http\Controllers\Controller;
+use App\Models\Resep;
+use App\Models\Transaction;
+use App\Models\TransactionDetail;
 use Illuminate\Http\Request;
 
 class TransaksiController extends Controller
@@ -12,7 +15,15 @@ class TransaksiController extends Controller
      */
     public function index()
     {
-        abort(404);
+        if (!auth()->user()->role === 'apoteker') {
+            abort(403);
+        }
+
+        $transactions = Transaction::with(['resep.dokter', 'resep.pasien', 'apoteker'])
+            ->latest()
+            ->paginate(10);
+
+        return view('transaksi.index', compact('transactions'));
     }
 
     /**
@@ -28,7 +39,91 @@ class TransaksiController extends Controller
      */
     public function store(Request $request)
     {
-        abort(404);
+        if (!auth()->user()->role === 'apoteker') {
+            abort(403);
+        }
+
+        $request->validate([
+            'resep_id' => 'required|integer|exists:reseps,id',
+            'details' => 'required|array',
+            'details.*.jumlah' => 'required|integer|min:1',
+        ]);
+
+        $resep = Resep::find($request->resep_id);
+        if (!$resep) {
+            return back()->withErrors([
+                'resep_id' => 'Resep tidak ditemukan.'
+            ]);
+        }
+
+        if ($resep->status == 'Diproses' || $resep->status == 'Completed') {
+            return back()->withErrors([
+                'resep_id' => 'Resep sudah diproses.'
+            ]);
+        }
+
+        $transaksi = new Transaction();
+        $transaksi->resep_id = $resep->id;
+        $transaksi->apoteker_id = auth()->id();
+        $transaksi->total_harga = 0;
+
+        $detailTransaksiData = [];
+
+        foreach ($request->details as $index => $detailData) {
+            $detailResep = $resep->details()->where('id', $index)->first();
+            if (!$detailResep) {
+                return back()->withErrors([
+                    "details.$index" => "Detail resep tidak ditemukan."
+                ])->withInput();
+            }
+
+            $obat = $detailResep->obat;
+            if (!$obat) {
+                return back()->withErrors([
+                    "items.$index.obat_id" => "Obat tidak ditemukan."
+                ])->withInput();
+            }
+
+            if ($detailData['jumlah'] > $obat->stok) {
+                return back()->withErrors([
+                    "details.$index.jumlah" => "Inputan jumlah obat {$obat->nama_obat} melebihi stok tersedia ({$obat->stok})."
+                ])->withInput();
+            }
+
+            $detailResep->jumlah = $detailData['jumlah'];
+            $detailResep->save();
+
+            $subtotal = $obat->harga_jual * $detailData['jumlah'];
+            $detailTransaksiData[] = [
+                'obat_id' => $obat->id,
+                'jumlah' => $detailData['jumlah'],
+                'harga_satuan' => $obat->harga_jual,
+                'subtotal' => $subtotal,
+            ];
+
+            $obat->stok = max(0, $obat->stok - $detailData['jumlah']);
+            $obat->save();
+
+            $transaksi->total_harga += $subtotal;
+        }
+
+        if ($transaksi->save()) {
+            foreach ($detailTransaksiData as $data) {
+                $data['transaction_id'] = $transaksi->id;
+                TransactionDetail::create($data);
+            }
+
+            $resep->status = 'Diproses';
+            if ($resep->save()) {
+                return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil diproses.');
+            }
+            return back()->withErrors([
+                'general' => 'Gagal memperbarui status resep.'
+            ])->withInput();
+        }
+        return back()->withErrors([
+            'general' => 'Gagal membuat transaksi.'
+        ])->withInput();
     }
 
     /**

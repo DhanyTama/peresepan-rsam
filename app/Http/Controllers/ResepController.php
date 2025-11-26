@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Dokter;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Obat;
@@ -16,10 +16,21 @@ class ResepController extends Controller
      */
     public function index()
     {
-        $reseps = Resep::with(['dokter', 'pasien', 'details.obat'])
-            ->where('dokter_id', auth()->id())
-            ->latest()
+        $reseps = Resep::with(['dokter', 'pasien', 'details.obat']);
+        if (auth()->user()->role === 'dokter') {
+            $reseps = $reseps->where('dokter_id', auth()->id());
+        }
+        $reseps = $reseps->latest()
             ->paginate(10);
+
+        foreach ($reseps as $resep) {
+            foreach ($resep->details as $detail) {
+                $detail->over_stock_flag = $detail->jumlah > $detail->obat->stok ? true : false;
+                if ((!isset($resep->over_stock_flag) || $resep->over_stock_flag == false) && $detail->over_stock_flag == true) {
+                    $resep->over_stock_flag = $detail->over_stock_flag ? true : false;
+                }
+            }
+        }
 
         return view('resep.index', compact('reseps'));
     }
@@ -29,6 +40,10 @@ class ResepController extends Controller
      */
     public function create(Request $request)
     {
+        if (auth()->user()->role !== 'dokter') {
+            abort(403);
+        }
+
         $validator = Validator::make($request->all(), [
             'pasien_id' => 'nullable|integer|exists:pasiens,id'
         ], [
@@ -62,6 +77,10 @@ class ResepController extends Controller
      */
     public function store(Request $request)
     {
+        if (auth()->user()->role !== 'dokter') {
+            abort(403);
+        }
+
         $request->validate([
             'pasien_id' => 'required',
             'items' => 'required|array|min:1',
@@ -119,7 +138,18 @@ class ResepController extends Controller
      */
     public function edit(string $id)
     {
-        abort(404);
+        if (auth()->user()->role !== 'dokter') {
+            abort(403);
+        }
+
+        $resep = Resep::with('details')->find($id);
+        if (!$resep) {
+            return redirect()->route('resep.index')->with('error', 'Resep tidak ditemukan.');
+        }
+
+        $obats = Obat::all();
+
+        return view('resep.edit', compact('resep', 'obats'));
     }
 
     /**
@@ -127,7 +157,53 @@ class ResepController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        abort(404);
+        if (auth()->user()->role !== 'dokter') {
+            abort(403);
+        }
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.obat_id' => 'required',
+            'items.*.dosis' => 'required',
+            'items.*.jumlah' => 'required|integer|min:1'
+        ], [
+            'items.*.obat_id.required' => 'Obat harus dipilih.',
+            'items.*.dosis.required' => 'Dosis harus diisi.',
+            'items.*.jumlah.required' => 'Jumlah harus diisi.',
+            'items.*.jumlah.integer' => 'Jumlah harus berupa angka.',
+            'items.*.jumlah.min' => 'Jumlah minimal adalah 1.',
+        ]);
+
+        foreach ($request->items as $index => $item) {
+            $obat = Obat::find($item['obat_id']);
+
+            if (!$obat) {
+                return back()->withErrors([
+                    "items.$index.obat_id" => "Obat tidak ditemukan."
+                ])->withInput();
+            }
+
+            if ($item['jumlah'] > $obat->stok) {
+                return back()->withErrors([
+                    "items.$index.jumlah" => "Jumlah obat melebihi stok tersedia ({$obat->stok})."
+                ])->withInput();
+            }
+        }
+
+        $resep = Resep::find($id);
+        if (!$resep) {
+            return redirect()->route('resep.index')->with('error', 'Resep tidak ditemukan.');
+        }
+
+        // Hapus detail resep lama
+        $resep->details()->delete();
+
+        // Tambah detail resep baru
+        foreach ($request->items as $item) {
+            $resep->details()->create($item);
+        }
+
+        return redirect()->route('resep.index')->with('success', 'Resep berhasil diperbarui.');
     }
 
     /**
@@ -135,6 +211,10 @@ class ResepController extends Controller
      */
     public function destroy(string $id)
     {
+        if (auth()->user()->role !== 'dokter') {
+            abort(403);
+        }
+
         $resep = Resep::find($id);
         if (!$resep) {
             return redirect()->route('resep.index')->with('error', 'Resep tidak ditemukan.');

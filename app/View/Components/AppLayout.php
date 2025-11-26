@@ -7,9 +7,13 @@ use Illuminate\View\View;
 
 class AppLayout extends Component
 {
-    /**
-     * Get the view / contents that represents the component.
-     */
+    public $backUrl;
+
+    public function __construct($backUrl = null)
+    {
+        $this->backUrl = $backUrl;
+    }
+
     public function render(): View
     {
         return view('layouts.app');

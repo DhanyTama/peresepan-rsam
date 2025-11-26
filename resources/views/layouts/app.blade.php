@@ -1,3 +1,5 @@
+@props(['backUrl' => null])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -11,6 +13,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -20,11 +23,19 @@
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
         @include('layouts.navigation')
 
-        <!-- Page Heading -->
         @if (isset($header))
             <header class="bg-white dark:bg-gray-800 shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex items-center gap-4">
+                    @if ($backUrl)
+                        <a href="{{ $backUrl }}"
+                            class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-lg flex items-center gap-1">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                    @endif
+
+                    <div class="flex-1">
+                        {{ $header }}
+                    </div>
                 </div>
             </header>
         @endif

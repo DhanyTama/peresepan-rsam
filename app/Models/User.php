@@ -53,14 +53,4 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class, 'apoteker_id')->where('role', 'apoteker');
     }
-
-    public function isDokter()
-    {
-        return $this->role === 'dokter';
-    }
-
-    public function isApoteker()
-    {
-        return $this->role === 'apoteker';
-    }
 }

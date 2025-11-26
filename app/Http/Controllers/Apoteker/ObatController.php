@@ -13,7 +13,7 @@ class ObatController extends Controller
      */
     public function index()
     {
-        $obats = Obat::paginate(10);
+        $obats = Obat::orderBy('id')->paginate(10);
 
         return view('obat.index', compact('obats'));
     }
@@ -55,7 +55,20 @@ class ObatController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        abort(404);
+        $request->validate([
+            'harga_jual' => 'required|numeric|min:0',
+            'stok' => 'required|integer|min:0',
+        ]);
+
+        $obat = Obat::find($id);
+        if (!$obat) {
+            return redirect()->route('obat.index')->with('error', 'Obat ' . $obat->kode_obat . ' - ' . $obat->nama_obat . ' tidak ditemukan.');
+        }
+        $obat->harga_jual = $request->harga_jual;
+        $obat->stok = $request->stok;
+        $obat->save();
+
+        return redirect()->route('obat.index')->with('success', 'Obat ' . $obat->kode_obat . ' - ' . $obat->nama_obat . ' berhasil diperbarui.');
     }
 
     /**
