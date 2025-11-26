@@ -1,6 +1,6 @@
 # 📘 Aplikasi Peresepan Dokter & Penjualan Obat — RS Anwar Medika (Mini Project 2025)
 
-Aplikasi berbasis web untuk mengelola pembuatan resep oleh dokter dan penjualan obat oleh apoteker, sesuai ketentuan Mini Project Programmer RSAM 2025.
+Aplikasi Peresepan Obat adalah sistem untuk mengelola pasien, obat, dan pembuatan resep obat secara digital. Aplikasi ini mendukung role pengguna (Admin & Dokter), dilengkapi fitur CRUD lengkap, pencarian data, serta form resep dinamis (multiple item obat).
 
 ---
 
