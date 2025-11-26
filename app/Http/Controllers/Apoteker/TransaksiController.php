@@ -56,15 +56,13 @@ class TransaksiController extends Controller
             ]);
         }
 
-        if ($resep->status == 'Draft') {
-            return back()->withErrors([
-                'nomor_resep' => 'Resep belum diproses.'
-            ]);
-        }
+        if ($resep->status === 'Draft' || $resep->status === 'Completed') {
+            $message = ($resep->status === 'Draft')
+                ? 'Resep belum diproses.'
+                : 'Resep sudah selesai.';
 
-        if ($resep->status == 'Completed') {
             return back()->withErrors([
-                'nomor_resep' => 'Resep sudah selesai.'
+                'nomor_resep' => $message
             ]);
         }
 
@@ -77,19 +75,13 @@ class TransaksiController extends Controller
 
         foreach ($request->details as $index => $detailData) {
             $detailResep = $resep->details()->where('id', $index)->first();
-            if (!$detailResep) {
+            if (!$detailResep || !$detailResep->obat) {
                 return back()->withErrors([
-                    "details.$index" => "Detail resep tidak ditemukan."
+                    "details.$index" => "Detail resep atau obat tidak ditemukan."
                 ])->withInput();
             }
 
             $obat = $detailResep->obat;
-            if (!$obat) {
-                return back()->withErrors([
-                    "items.$index.kode_obat" => "Obat tidak ditemukan."
-                ])->withInput();
-            }
-
             if ($detailData['jumlah'] > $obat->stok) {
                 return back()->withErrors([
                     "details.$index.jumlah" => "Inputan jumlah obat {$obat->nama_obat} melebihi stok tersedia ({$obat->stok})."
