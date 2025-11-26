@@ -18,7 +18,7 @@ Aplikasi berbasis web untuk mengelola pembuatan resep oleh dokter dan penjualan 
 
 ### 💊 Role: Apoteker
 - Login
-- CRUD Master Obat
+- CRUD Master Obat (dummy)
 - Melihat daftar resep dokter
 - Memproses resep menjadi transaksi penjualan
 - Melihat riwayat penjualan
