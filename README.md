@@ -78,8 +78,8 @@ Aplikasi berbasis web untuk mengelola pembuatan resep oleh dokter dan penjualan 
 
 ### Clone Repository
 ```
-git clone <url-repository>
-cd <nama-folder>
+git clone https://github.com/DhanyTama/peresepan-rsam.git
+cd peresepan-rsam
 ```
 ### Install Dependency
 ```
